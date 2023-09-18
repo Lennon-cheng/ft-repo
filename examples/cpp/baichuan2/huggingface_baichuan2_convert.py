@@ -18,7 +18,7 @@ import numpy as np
 from pathlib import Path
 
 import os
-from transformers import LlamaForCausalLM
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # using numpy extension: https://github.com/GreenWaves-Technologies/bfloat16
 # install the library with `pip install bfloat16`
@@ -58,11 +58,11 @@ def split_and_convert_process(saved_dir, factor, key, val):
     else:
         print("[ERROR] cannot find key '{}'".format(key))
 
+
 def split_and_convert(args):
     saved_dir = args.saved_dir + "/%d-gpu/" % args.infer_gpu_num
 
-    if(os.path.exists(saved_dir) == False):
-        os.makedirs(saved_dir)
+    if os.path.exists(saved_dir) is False: os.makedirs(saved_dir)
 
     t_gpu_num = args.trained_gpu_num
     i_gpu_num = args.infer_gpu_num
@@ -72,7 +72,8 @@ def split_and_convert(args):
 
     # load position_embedding from rank 0
     # model = torch.load(ckpt_name)
-    model = LlamaForCausalLM.from_pretrained(args.in_file)
+    # model = LlamaForCausalLM.from_pretrained(args.in_file)
+    model = AutoModelForCausalLM.from_pretrained(args.in_file, trust_remote_code=True)
     hf_config = vars(model.config)
     print(f"hf_config: {hf_config}")
 
@@ -85,24 +86,23 @@ def split_and_convert(args):
     head_size = hidden_size // head_num
     num_layers = hf_config["num_hidden_layers"]
 
-
     np_weight_data_type = get_weight_data_type(args.weight_data_type)
 
     try:
         model_name = args.model_name
         config = configparser.ConfigParser()
-        config['llama'] = {}
-        config['llama']['model_name'] = model_name
-        config['llama']["head_num"] = str(head_num)
-        config['llama']["size_per_head"] = str(head_size)
-        config['llama']["inter_size"] = str(hf_config["intermediate_size"])
-        config['llama']["num_layer"] = str(num_layers)
-        config['llama']["rotary_embedding"] = str(head_size)
-        config['llama']['layernorm_eps'] = str(hf_config["rms_norm_eps"])
-        config['llama']["vocab_size"] = str(hf_config["vocab_size"])
-        config['llama']["start_id"] = str(hf_config["bos_token_id"])
-        config['llama']["end_id"] = str(hf_config["eos_token_id"])
-        config['llama']["weight_data_type"] = args.weight_data_type
+        config[model_name] = {}
+        config[model_name]['model_name'] = model_name
+        config[model_name]["head_num"] = str(head_num)
+        config[model_name]["size_per_head"] = str(head_size)
+        config[model_name]["inter_size"] = str(hf_config["intermediate_size"])
+        config[model_name]["num_layer"] = str(num_layers)
+        # config[model_name]["rotary_embedding"] = str(head_size)
+        config[model_name]['layernorm_eps'] = str(hf_config["rms_norm_eps"])
+        config[model_name]["vocab_size"] = str(hf_config["vocab_size"])
+        config[model_name]["start_id"] = str(hf_config["bos_token_id"])
+        config[model_name]["end_id"] = str(hf_config["eos_token_id"])
+        config[model_name]["weight_data_type"] = args.weight_data_type
 
         with open((Path(saved_dir) / f"config.ini").as_posix(), 'w') as configfile:
             config.write(configfile)
@@ -127,12 +127,15 @@ def split_and_convert(args):
         # first merge QKV into a single weight
         # concat direct to FT shape: [hidden_size, 3, head_num, head_size]
         # copied from huggingface_gptj_ckpt_convert.py
+        """
         qkv_weights = np.stack([
             param_to_weights(model.state_dict()[f'model.layers.{l}.self_attn.q_proj.weight']),
             param_to_weights(model.state_dict()[f'model.layers.{l}.self_attn.k_proj.weight']),
             param_to_weights(model.state_dict()[f'model.layers.{l}.self_attn.v_proj.weight']),
         ])
-        qkv_weights = np.transpose(qkv_weights, (2, 0, 1))
+        """
+        # qkv_weights = np.transpose(qkv_weights, (2, 0, 1))
+        qkv_weights = param_to_weights(model.state_dict()[f'model.layers.{l}.self_attn.W_pack.weight']).T
         qkv_weights_base_name = f'model.layers.{l}.attention.query_key_value.weight'
         split_and_convert_process(saved_dir, factor, qkv_weights_base_name, qkv_weights)
 
@@ -165,7 +168,6 @@ def split_and_convert(args):
 
         print(f"done layer {l}")
 
-
     # final common weights
     for name, param in model.named_parameters():
         if name == 'model.embed_tokens.weight':
@@ -192,3 +194,6 @@ if __name__ == "__main__":
     print("========================================")
 
     split_and_convert(args)
+
+# python3 huggingface_baichuan2_convert.py -o ./models -i ./models -t_g 1 -i_g 1 -weight_data_type fp16 -m_n baichuan2
+

@@ -30,6 +30,8 @@ add_subdirectory(multi_gpu_gpt)
 
 add_subdirectory(llama)
 
+add_subdirectory(baichuan2)
+
 if(ENABLE_FP8)
     add_subdirectory(gpt_fp8)
     add_subdirectory(bert_fp8)

@@ -16,7 +16,7 @@
 
 #include "3rdparty/INIReader.h"
 #include "examples/cpp/multi_gpu_gpt/gpt_example_utils.h"
-#include "src/fastertransformer/models/llama/Llama.h"
+#include "src/fastertransformer/models/baichuan2/Baichuan2.h"
 #include "src/fastertransformer/utils/mpi_utils.h"
 #include "src/fastertransformer/utils/nccl_utils.h"
 #include "src/fastertransformer/utils/nvtx_utils.h"
@@ -32,7 +32,7 @@
 using namespace fastertransformer;
 
 template<typename T>
-void llama_example(const INIReader reader);
+void baichuan2_example(const INIReader reader);
 
 int main(int argc, char* argv[])
 {
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
         ini_name = std::string(argv[1]);
     }
     else {
-        ini_name = "../examples/cpp/llama/llama_config.ini";
+        ini_name = "../examples/cpp/baichuan2/baichuan2_config.ini";
     }
 
     INIReader reader = INIReader(ini_name);
@@ -55,14 +55,14 @@ int main(int argc, char* argv[])
     const std::string data_type = reader.Get("ft_instance_hyperparameter", "data_type");
 
     if (data_type == "fp32") {
-        llama_example<float>(reader);
+        baichuan2_example<float>(reader);
     }
     else if (data_type == "fp16") {
-        llama_example<half>(reader);
+        baichuan2_example<half>(reader);
     }
 #ifdef ENABLE_BF16
     else if (data_type == "bf16") {
-        llama_example<__nv_bfloat16>(reader);
+        baichuan2_example<__nv_bfloat16>(reader);
     }
 #endif
     else {
@@ -74,7 +74,7 @@ int main(int argc, char* argv[])
 }
 
 template<typename T>
-void llama_example(const INIReader reader)
+void baichuan2_example(const INIReader reader)
 {
     const std::string model_name = reader.Get("ft_instance_hyperparameter", "model_name");
     std::string       model_dir  = std::string(reader.Get("ft_instance_hyperparameter", "model_dir"));
@@ -161,7 +161,7 @@ void llama_example(const INIReader reader)
 
     // Handle bad_words dictionary
     std::vector<int> bad_words;
-    read_word_list("../examples/cpp/llama/bad_words.csv", bad_words);
+    read_word_list("../examples/cpp/baichuan2/bad_words.csv", bad_words);
 
     int* d_bad_words = nullptr;
     deviceMalloc(&d_bad_words, bad_words.size(), false);
@@ -169,7 +169,7 @@ void llama_example(const INIReader reader)
 
     // Handle stop_words dictionary
     std::vector<int> stop_words;
-    read_word_list("../examples/cpp/llama/stop_words.csv", stop_words);
+    read_word_list("../examples/cpp/baichuan2/stop_words.csv", stop_words);
 
     const size_t stop_words_len = stop_words.size() / 2;
     // Tile with same dict for each element
@@ -193,7 +193,7 @@ void llama_example(const INIReader reader)
                    max_input_len,
                    end_id,
                    1,
-                   "../examples/cpp/llama/start_ids.csv");
+                   "../examples/cpp/baichuan2/start_ids.csv");
 
 
     int* d_input_ids;
@@ -278,7 +278,7 @@ void llama_example(const INIReader reader)
     }
 
     const bool                          use_gptj_residual = false;
-    fastertransformer::LlamaWeight<T> gpt_weights(hidden_units,
+    fastertransformer::Baichuan2Weight<T> gpt_weights(hidden_units,
                                                   inter_size,
                                                   vocab_size,
                                                   decoder_layers,
@@ -309,7 +309,7 @@ void llama_example(const INIReader reader)
                                                        false,  // with_relative_position_bias
                                                        true);  // causal_mask
 
-    Llama<T> gpt = Llama<T>(head_num,
+    Baichuan2<T> gpt = Baichuan2<T>(head_num,
                             size_per_head,
                             inter_size,
                             decoder_layers,
@@ -454,7 +454,7 @@ void llama_example(const INIReader reader)
                     if (hBuf[i] == int(0)) {
                         zeroCount++;
                     }
-                    outFile << hBuf[i] << " ";
+                    outFile << hBuf[i] << ", ";
                     if ((i + 1) % (total_output_len) == 0) {
                         outFile << std::endl;
                     }

@@ -16,8 +16,8 @@
 
 #include "3rdparty/INIReader.h"
 #include "examples/cpp/multi_gpu_gpt/gpt_example_utils.h"
-#include "src/fastertransformer/triton_backend/llama/LlamaTritonModel.h"
-#include "src/fastertransformer/triton_backend/llama/LlamaTritonModelInstance.h"
+#include "src/fastertransformer/triton_backend/baichuan2/Baichuan2TritonModel.h"
+#include "src/fastertransformer/triton_backend/baichuan2/Baichuan2TritonModelInstance.h"
 #include "src/fastertransformer/utils/custom_ar_comm.h"
 #include "src/fastertransformer/utils/mpi_utils.h"
 #include "src/fastertransformer/utils/nccl_utils.h"
@@ -229,8 +229,8 @@ prepareRequest(std::string ini_name, const int node_id, const int gpu_count, std
 
     const size_t request_batch_size = reader.GetInteger("request", "request_batch_size");
 
-    const int start_id = reader.GetInteger("llama_7b", "start_id");
-    const int end_id   = reader.GetInteger("llama_7b", "end_id");
+    const int start_id = reader.GetInteger("baichuan2_13b", "start_id");
+    const int end_id   = reader.GetInteger("baichuan2_13b", "end_id");
 
     std::vector<int> v_start_ids;
     std::vector<int> v_start_lengths;
@@ -242,10 +242,10 @@ prepareRequest(std::string ini_name, const int node_id, const int gpu_count, std
                        max_input_len,
                        end_id,
                        1,
-                       "../examples/cpp/llama/start_ids.csv");
+                       "../examples/cpp/baichuan2/start_ids.csv");
 
     std::vector<int> v_bad_words;
-    ft::read_word_list("../examples/cpp/llama/bad_words.csv", v_bad_words);
+    ft::read_word_list("../examples/cpp/baichuan2/bad_words.csv", v_bad_words);
 
     RequestParam param;
     param.beam_width                 = reader.GetInteger("request", "beam_width");
@@ -312,10 +312,10 @@ int main(int argc, char* argv[])
     // Note: Only supports that all nodes have same gpu count
     const int   gpu_count  = ft::getDeviceCount();
     const int   world_size = node_num * gpu_count;
-    std::string ini_name   = argc >= 2 ? std::string(argv[1]) : "../examples/cpp/llama/llama_config.ini";
+    std::string ini_name   = argc >= 2 ? std::string(argv[1]) : "../examples/cpp/baichuan2/baichuan2_config.ini";
 
     // step 1: Create model
-    std::shared_ptr<AbstractTransformerModel> model            = AbstractTransformerModel::createLlamaModel(ini_name);
+    std::shared_ptr<AbstractTransformerModel> model            = AbstractTransformerModel::createBaichuan2Model(ini_name);
     int                                       tensor_para_size = model->getTensorParaSize();
     int                                       pipeline_para_size = model->getPipelineParaSize();
     FT_CHECK_WITH_INFO(world_size == (tensor_para_size * pipeline_para_size),
@@ -395,7 +395,7 @@ int main(int argc, char* argv[])
                 for (size_t i = 0; i < outCount; i++) {
                     if (hBuf[i] == int(0))
                         zeroCount++;
-                    outFile << hBuf[i] << " ";
+                    outFile << hBuf[i] << ", ";
                     if ((i + 1) % (seq_len) == 0)
                         outFile << std::endl;
 
