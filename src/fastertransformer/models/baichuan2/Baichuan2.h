@@ -130,6 +130,9 @@ protected:
     T*     context_decoder_output_buf_;
     float* output_log_probs_buf_;
 
+    // The slope per head of an attention linear bias.
+    T* linear_bias_slopes_ = nullptr;
+
     // function pointer callback
     using callback_sig                 = void(std::unordered_map<std::string, Tensor>*, void*);
     callback_sig* token_generated_cb_  = nullptr;

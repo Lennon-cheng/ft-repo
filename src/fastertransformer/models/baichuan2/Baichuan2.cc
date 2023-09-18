@@ -171,6 +171,8 @@ void Baichuan2<T>::allocateBuffer(
         compact_size_         = (int*)allocator_->reMalloc(compact_size_, sizeof(int), false);
     }
 
+    linear_bias_slopes_ = (T*)(allocator_->reMalloc(linear_bias_slopes_, sizeof(T) * head_num_, false));
+
     is_allocate_buffer_ = true;
 }
 
@@ -225,6 +227,8 @@ void Baichuan2<T>::freeBuffer()
             allocator_->free((void**)(&shared_contexts_idx_));
             allocator_->free((void**)(&compact_size_));
         }
+
+        allocator_->free((void**)(&linear_bias_slopes_));
 
         is_allocate_buffer_ = false;
     }
@@ -640,6 +644,11 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
 
     sync_check_cuda_error();
 
+    // alibi
+    invokeBuildAlibiSlopes(linear_bias_slopes_, head_num_, stream_);
+    sync_check_cuda_error();
+
+
     // handle first step
     if (has_prefix_prompt_ || has_prefix_soft_prompt_ || max_input_length > 1) {
         invokeTileGptInputs(tiled_input_ids_buf_,
@@ -732,6 +741,12 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                 {"batch_to_compact_idx",
                  Tensor(MEMORY_GPU, TYPE_INT32, {batch_size * beam_width}, batch_to_compact_idx_)});
         }
+
+        decoder_input_tensors.insert("linear_bias_slopes",
+                                     Tensor(MEMORY_GPU,
+                                            data_type,
+                                            {local_head_num_},
+                                            linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_));
 
         std::unordered_map<std::string, Tensor> decoder_output_tensors{
             {"decoder_output",
@@ -895,7 +910,13 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                      Tensor{MEMORY_GPU,
                             TYPE_BOOL,
                             {local_batch_size * beam_width, max_cache_seq_len},
-                            masked_tokens_ + id_offset * max_cache_seq_len}}};
+                            masked_tokens_ + id_offset * max_cache_seq_len}},
+                    {"linear_bias_slopes",
+                     Tensor{MEMORY_GPU,
+                            data_type,
+                            {local_head_num_},
+                            linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_}}};
+
                 std::unordered_map<std::string, Tensor> decoder_output_tensors{
                     {"decoder_output",
                      Tensor{MEMORY_GPU,
