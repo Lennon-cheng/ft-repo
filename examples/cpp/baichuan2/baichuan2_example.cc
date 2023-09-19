@@ -343,11 +343,11 @@ void baichuan2_example(const INIReader reader)
 
     int* d_output_ids;
     int* d_sequence_lengths;
-    bool* d_finished_;
+    bool* d_finished;
 
     deviceMalloc(&d_output_ids, request_batch_size * beam_width * total_output_len, false);
     deviceMalloc(&d_sequence_lengths, request_batch_size * beam_width, false);
-    deviceMalloc(&d_finished_, request_batch_size * beam_width, false);
+    deviceMalloc(&d_finished, request_batch_size * beam_width, false);
 
     std::vector<uint32_t>                   output_seq_len(request_batch_size, total_output_len);
     std::unordered_map<std::string, Tensor> input_tensors = std::unordered_map<std::string, Tensor>{
