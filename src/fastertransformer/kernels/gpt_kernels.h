@@ -239,4 +239,35 @@ void invokeSumLengthDimension(float*       out_buf,
                               const size_t hidden_dim,
                               cudaStream_t stream = 0);
 
+
+
+void half2float(half *half_data, float *float_data, int N, cudaStream_t stream);
+void half2float(const half *half_data, float *float_data, int N, cudaStream_t stream);
+
+void getValue1(half* half_data, int N, int n, int start, cudaStream_t stream);
+void getValue1(float* half_data, int N, int n, int start, cudaStream_t stream);
+void getValue1(__nv_bfloat16* half_data, int N, int n, int start, cudaStream_t stream);
+void getValue1(const half* half_data, int N, int n, int start, cudaStream_t stream);
+void getValue1(const float* half_data, int N, int n, int start, cudaStream_t stream);
+void getValue1(const __nv_bfloat16* half_data, int N, int n, int start, cudaStream_t stream);
+
+void getValue(half* half_data, int N, int n, cudaStream_t stream);
+void getValue(float* half_data, int N, int n, cudaStream_t stream);
+void getValue(__nv_bfloat16* half_data, int N, int n, cudaStream_t stream);
+void getValue(const half* half_data, int N, int n, cudaStream_t stream);
+void getValue(const float* half_data, int N, int n, cudaStream_t stream);
+void getValue(const __nv_bfloat16* half_data, int N, int n, cudaStream_t stream);
+void getValue(bool* half_data, int N, int n, cudaStream_t stream);
+void getValue(int* half_data, int N, int n, cudaStream_t stream);
+
+void h2d_half(half* d_half_data, float* h_float_data, int N, cudaStream_t stream);
+void h2d_half(float* d_half_data, float* h_float_data, int N, cudaStream_t stream);
+void h2d_half(__nv_bfloat16* d_half_data, float* h_float_data, int N, cudaStream_t stream);
+
+void d2d_half(half* d_half_data, float* d_float_data, int N, cudaStream_t stream);
+void d2d_half(float* d_half_data, float* d_float_data, int N, cudaStream_t stream);
+void d2d_half(__nv_bfloat16* d_half_data, float* d_float_data, int N, cudaStream_t stream);
+
+
+
 }  // namespace fastertransformer

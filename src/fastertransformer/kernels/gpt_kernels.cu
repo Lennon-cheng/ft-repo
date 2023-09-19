@@ -1124,4 +1124,237 @@ INSTANTIATE_INVOKE_SUM_LENGTH_DIMENSION(__nv_bfloat16);
 #endif
 #undef INSTANTIATE_INVOKE_SUM_LENGTH_DIMENSION
 
+
+
+
+
+
+__global__ void float2half_kernel(half *half_data, float *float_data, int N)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        half_data[idx] = __float2half(float_data[idx]);
+    }
+}
+
+void h2d_half(half* d_half_data, float* h_float_data, int N, cudaStream_t stream) {
+    std::cout << "h2d_half *********" << std::endl;
+    float *dp2;
+    cudaMalloc((void**)&dp2, N * sizeof(float));  //注意这里是void**
+    cudaMemcpy(dp2, h_float_data, N * sizeof(float), cudaMemcpyHostToDevice);
+    sync_check_cuda_error();
+//     float2half((half *)d_half_data, (float *)dp2, N, stream);
+    float2half_kernel<<<1024, N / 1024, 0, stream>>>(d_half_data, dp2, N);
+    sync_check_cuda_error();
+    cudaFree(dp2);
+}
+
+void h2d_half(float* d_half_data, float* h_float_data, int N, cudaStream_t stream){}
+void h2d_half(__nv_bfloat16* d_half_data, float* h_float_data, int N, cudaStream_t stream){}
+
+
+void d2d_half(half* d_half_data, float* d_float_data, int N, cudaStream_t stream) {
+    std::cout << "d2d_half *********" << std::endl;
+    float2half_kernel<<<1024, N / 1024, 0, stream>>>(d_half_data, d_float_data, N);
+    sync_check_cuda_error();
+}
+
+void d2d_half(float* d_half_data, float* d_float_data, int N, cudaStream_t stream){}
+void d2d_half(__nv_bfloat16* d_half_data, float* d_float_data, int N, cudaStream_t stream){}
+
+
+
+__global__ void half2float_kernel(half *half_data, float *float_data, int N)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        float_data[idx] = __half2float(half_data[idx]);
+    }
+}
+
+
+__global__ void half2float_kernel(const half *half_data, float *float_data, int N)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        float_data[idx] = __half2float(half_data[idx]);
+    }
+}
+
+
+void half2float(half *half_data, float *float_data, int N, cudaStream_t stream){
+    if (N >= 1024) {
+        dim3 dimBlock(1024);
+        dim3 dimGrid(N / 1024);
+        half2float_kernel<<<dimGrid, dimBlock, 0, stream>>>(half_data, float_data, N);
+    } else {
+        half2float_kernel<<<1, N, 0, stream>>>(half_data, float_data, N);
+    }
+}
+
+void half2float(const half *half_data, float *float_data, int N, cudaStream_t stream){
+    if (N < 1024) {
+        dim3 dimBlock(1024);
+        dim3 dimGrid(N / 1024);
+        half2float_kernel<<<dimGrid, dimBlock, 0, stream>>>(half_data, float_data, N);
+    } else {
+        half2float_kernel<<<1, N, 0, stream>>>(half_data, float_data, N);
+    }
+}
+
+__global__ void print_half_kernel(half *half_data, int N)
+{
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    printf("!!!!!!!!!!!!!!!!! idx: %d", idx);
+    if (idx < N) {
+//         float_data[idx] = __half2float(half_data[idx]);
+        printf("im!!!!!!!!! %f, ", __half2float(half_data[idx]));
+    }
+}
+
+void print_half2float(half *half_data, int N, cudaStream_t stream){
+    dim3 dimBlock(512);
+    dim3 dimGrid(N / 512);
+    print_half_kernel<<<dimBlock, dimGrid, 0, stream>>>(half_data, N);
+}
+
+void getValue(half* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "get value half *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+    float *dp2;
+    cudaMalloc((void**)&dp2, k2 * sizeof(float));  //注意这里是void**
+    sync_check_cuda_error();
+    half2float((half *)half_data, (float *)dp2, k2, stream);
+    sync_check_cuda_error();
+    cudaMemcpy(hp2, dp2, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    sync_check_cuda_error();
+
+    for(int i = 0; i < n; i++)
+         std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+    cudaFree(dp2);
+}
+
+
+void getValue1(half* half_data, int N, int n, int start, cudaStream_t stream) {
+    // std::cout << "half *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+    float *dp2;
+    cudaMalloc((void**)&dp2, k2 * sizeof(float));  //注意这里是void**
+    half2float((half *)half_data, (float *)dp2, k2, stream);
+    cudaMemcpy(hp2, dp2, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    sync_check_cuda_error();
+    for(int i = start; i < start + n; i++)
+         std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+    cudaFree(dp2);
+}
+
+
+void getValue1(const half* half_data, int N, int n, int start, cudaStream_t stream) {
+    // std::cout << "half *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+    float *dp2;
+    cudaMalloc((void**)&dp2, k2 * sizeof(float));  //注意这里是void**
+    half2float((half *)half_data, (float *)dp2, k2, stream);
+    cudaMemcpy(hp2, dp2, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    sync_check_cuda_error();
+    for(int i = start; i < start + n; i++)
+         std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+    cudaFree(dp2);
+}
+
+void getValue(const half* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "const half *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+    float *dp2;
+    cudaMalloc((void**)&dp2, k2 * sizeof(float));  //注意这里是void**
+    half2float((half *)half_data, (float *)dp2, k2, stream);
+    cudaMemcpy(hp2, dp2, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    for(int i = 0; i < n; i++)
+        std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+    cudaFree(dp2);
+}
+
+void getValue(bool* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "bool get value *********" << std::endl;
+    bool *hp2;
+    hp2=(bool *)malloc(N * sizeof(bool));
+
+    cudaMemcpy(hp2, half_data, N * sizeof(bool), cudaMemcpyDeviceToHost);
+    for(int i = 0; i < n; i++)
+        std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+}
+
+void getValue(int* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "int get value *********" << std::endl;
+    int *hp2;
+    hp2=(int *)malloc(N * sizeof(int));
+
+    cudaMemcpy(hp2, half_data, N * sizeof(int), cudaMemcpyDeviceToHost);
+    for(int i = 0; i < n; i++)
+        std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+}
+
+void getValue1(float* half_data, int N, int n, int start, cudaStream_t stream) {
+    std::cout << "float const get value start *********" << std::endl;
+}
+
+void getValue1(const float* half_data, int N, int n, int start, cudaStream_t stream) {
+    std::cout << "float const get value start *********" << std::endl;
+}
+
+void getValue(const float* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "float const get value *********" << std::endl;
+}
+
+void getValue(float* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "float get value *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+
+    cudaMemcpy(hp2, half_data, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    for(int i = 0; i < n; i++)
+        std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
+}
+
+void getValue(__nv_bfloat16* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "__nv_bfloat16 get value *********" << std::endl;
+}
+
+void getValue1(__nv_bfloat16* half_data, int N, int n, int start, cudaStream_t stream) {
+    std::cout << "__nv_bfloat16 get value *********" << std::endl;
+}
+
+void getValue1(const __nv_bfloat16* half_data, int N, int n, int start, cudaStream_t stream) {
+    std::cout << "__nv_bfloat16 get value *********" << std::endl;
+}
+
+void getValue(const __nv_bfloat16* half_data, int N, int n, cudaStream_t stream) {
+    std::cout << "__nv_bfloat16 get value *********" << std::endl;
+}
+
+
+
 }  // namespace fastertransformer
