@@ -2,18 +2,18 @@ import transformers
 
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_path = "/data/llama-7b-hf"
-prompt = "Hey, are you consciours? Can you talk to me?"
+model_path = "/chengxiaojie/models/baichuan2/Baichuan2-13B-Chat"
+prompt = "北京有什么著名景点?"
 rtype = 0  # prompt_token 0 python prompt 1 token decoder 2
 tokens = [
-    0
+    0, 18637, 29892, 526, 366, 1136, 455, 2470, 29973, 1815, 366, 5193, 304, 592, 29973, 92399, 2,
 ]
 
-tokenizer = AutoModelForCausalLM.from_pretrained(model_path)
+tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 inputs = tokenizer(prompt, return_tensors='pt')
 if rtype == 0: print(inputs); exit()
 if rtype == 1:
-    model = AutoTokenizer.from_pretrained(model_path)
+    model = AutoModelForCausalLM.from_pretrained(model_path, trust_remote_code=True)
     hf_config = vars(model.config)
     generated_ids = model.forward(inputs.input_ids, output_hidden_states=True)
     print(generated_ids)
