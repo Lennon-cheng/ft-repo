@@ -28,3 +28,4 @@ endif()
 add_subdirectory(bert)
 
 add_subdirectory(llama)
+add_subdirectory(baichuan2)
