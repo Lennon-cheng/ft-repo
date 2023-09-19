@@ -87,7 +87,7 @@ void baichuan2_example(const INIReader reader)
     const size_t size_per_head        = reader.GetInteger(model_name, "size_per_head");
     const size_t vocab_size           = reader.GetInteger(model_name, "vocab_size");
     const size_t decoder_layers       = reader.GetInteger(model_name, "num_layer");
-    const size_t rotary_embedding_dim = reader.GetInteger(model_name, "rotary_embedding");
+    const size_t rotary_embedding_dim = reader.GetInteger(model_name, "rotary_embedding", 0);
     const float  layernorm_eps        = reader.GetFloat(model_name, "layernorm_eps");
     const int    start_id             = reader.GetInteger(model_name, "start_id");
     const int    end_id               = reader.GetInteger(model_name, "end_id");
