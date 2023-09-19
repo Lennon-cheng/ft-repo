@@ -742,11 +742,11 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                  Tensor(MEMORY_GPU, TYPE_INT32, {batch_size * beam_width}, batch_to_compact_idx_)});
         }
 
-        decoder_input_tensors.insert("linear_bias_slopes",
+        decoder_input_tensors.insert({"linear_bias_slopes",
                                      Tensor(MEMORY_GPU,
                                             data_type,
                                             {local_head_num_},
-                                            linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_));
+                                            linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_)});
 
         std::unordered_map<std::string, Tensor> decoder_output_tensors{
             {"decoder_output",
