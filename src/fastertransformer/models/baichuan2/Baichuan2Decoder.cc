@@ -219,7 +219,7 @@ void Baichuan2Decoder<T>::forward(std::unordered_map<std::string, Tensor>*      
     //      key_cache [num_layer, batch_size, head_num, size_per_head // x, memory_len, x]
     //      value_cache [num_layer, batch_size, head_num, memory_len, size_per_head]
 
-    FT_CHECK(input_tensors->size() == 11);
+    FT_CHECK(input_tensors->size() == 12);
     FT_CHECK(output_tensors->size() == 3);
 
     const DataType data_type        = getTensorType<T>();
