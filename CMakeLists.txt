@@ -354,6 +354,12 @@ add_library(transformer-shared SHARED
   $<TARGET_OBJECTS:LlamaDecoderLayerWeight>
   $<TARGET_OBJECTS:LlamaTritonBackend>
   $<TARGET_OBJECTS:LlamaWeight>
+  $<TARGET_OBJECTS:Baichuan2>
+  $<TARGET_OBJECTS:Baichuan2ContextDecoder>
+  $<TARGET_OBJECTS:Baichuan2Decoder>
+  $<TARGET_OBJECTS:Baichuan2DecoderLayerWeight>
+  $<TARGET_OBJECTS:Baichuan2TritonBackend>
+  $<TARGET_OBJECTS:Baichuan2Weight>
   $<TARGET_OBJECTS:T5Common>
   $<TARGET_OBJECTS:T5Decoder>
   $<TARGET_OBJECTS:T5Decoding>

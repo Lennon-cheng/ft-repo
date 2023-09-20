@@ -23,6 +23,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 # using numpy extension: https://github.com/GreenWaves-Technologies/bfloat16
 # install the library with `pip install bfloat16`
 from bfloat16 import bfloat16
+from torch import nn
 
 def get_weight_data_type(data_type):
     if data_type == "fp32":
