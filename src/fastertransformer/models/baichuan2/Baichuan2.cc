@@ -884,6 +884,7 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                                                              stream_);
                     sync_check_cuda_error();
                 }
+		
                 std::unordered_map<std::string, Tensor> decoder_input_tensors{
                     {"decoder_input",
                      Tensor{MEMORY_GPU,
@@ -971,6 +972,12 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                                           vocab_size_padded_, /* n */
                                           CUDA_R_32F,
                                           cublasGemmAlgo_t(-1));
+		    /*
+		    getValue1(padded_embedding_kernel_ptr_, 5120, 20, 0, stream_);
+		    getValue1(normed_decoder_output_buf_ + hidden_units_offset, 5120, 20, 0, stream_);
+		    getValue1(logits_buf_ + vocab_size_units_offset, 5120, 20, 0, stream_);
+		    std::cout << std::endl;
+		    */
                 }
                 else {
                     FT_CHECK(vocab_size_padded_ % tensor_para_.world_size_ == 0);
@@ -998,6 +1005,8 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                                           CUDA_R_32F,
                                           cublasGemmAlgo_t(-1));
                     
+		    // getValue1(, 40, 40, 0, stream_);		    
+
 
                     ftNcclAllGather(nccl_logits_buf_ + vocab_size_units_offset,
                                     nccl_logits_buf_ + vocab_size_units_offset,

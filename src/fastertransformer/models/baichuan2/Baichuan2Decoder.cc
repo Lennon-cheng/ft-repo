@@ -279,10 +279,8 @@ void Baichuan2Decoder<T>::forward(std::unordered_map<std::string, Tensor>*      
         TensorMap self_attention_input_tensors(*input_tensors);
         self_attention_input_tensors.insert(
             "input_query", Tensor{MEMORY_GPU, data_type, {local_batch_size, hidden_units_}, decoder_normed_input_});
-
-	if (input_tensors->count("linear_bias_slopes")) {
-            self_attention_input_tensors.insert("linear_bias_slopes", input_tensors->at("linear_bias_slopes"));
-        }
+	
+        // self_attention_input_tensors.insert("linear_bias_slopes", input_tensors->at("linear_bias_slopes"));
 
         size_t cache_offset = l - getFirstLayerParallelId();
         for (auto t = k_cache.shape.begin() + 1; t != k_cache.shape.end(); ++t) {
