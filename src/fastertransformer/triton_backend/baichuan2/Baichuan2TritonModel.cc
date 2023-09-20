@@ -88,7 +88,7 @@ Baichuan2TritonModel<T>::Baichuan2TritonModel(size_t      tensor_para_size,
     inter_size_           = reader.GetInteger("baichuan2", "inter_size");
     num_layer_            = reader.GetInteger("baichuan2", "num_layer");
     vocab_size_           = reader.GetInteger("baichuan2", "vocab_size");
-    rotary_embedding_dim_ = reader.GetInteger("baichuan2", "rotary_embedding");
+    rotary_embedding_dim_ = reader.GetInteger("baichuan2", "rotary_embedding", 0);
     layernorm_eps_        = reader.GetFloat("baichuan2", "layernorm_eps");
     start_id_             = reader.GetInteger("baichuan2", "start_id");
     end_id_               = reader.GetInteger("baichuan2", "end_id");
