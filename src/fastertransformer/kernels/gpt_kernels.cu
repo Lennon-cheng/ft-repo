@@ -1315,7 +1315,15 @@ void getValue(int* half_data, int N, int n, cudaStream_t stream) {
 }
 
 void getValue1(float* half_data, int N, int n, int start, cudaStream_t stream) {
-    std::cout << "float const get value start *********" << std::endl;
+    float *hp2;
+    int k2 = N;
+    hp2=(float *)malloc(k2 * sizeof(float));
+
+    cudaMemcpy(hp2, half_data, k2 * sizeof(float), cudaMemcpyDeviceToHost);
+    for(int i = start; i < start + n; i++)
+        std::cout << hp2[i] << ",";
+    std::cout << std::endl;
+    free(hp2);
 }
 
 void getValue1(const float* half_data, int N, int n, int start, cudaStream_t stream) {

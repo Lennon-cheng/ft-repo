@@ -4,7 +4,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 model_path = "/chengxiaojie/models/baichuan2/Baichuan2-13B-Chat"
 prompt = "北京有什么著名景点?"
-rtype = 2  # prompt_token 0 python prompt 1 token decoder 2
+rtype = 0  # prompt_token 0 python prompt 1 token decoder 2
 tokens = [
         2420, 5817, 9350, 13824, 74, 2, 2,
 ]

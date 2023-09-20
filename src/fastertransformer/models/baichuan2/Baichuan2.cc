@@ -648,6 +648,8 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
     invokeBuildAlibiSlopes(linear_bias_slopes_, head_num_, stream_);
     sync_check_cuda_error();
 
+    // getValue1(linear_bias_slopes_, 40, 40, 0, stream_);
+    // std::cout << std::endl;
 
     // handle first step
     if (has_prefix_prompt_ || has_prefix_soft_prompt_ || max_input_length > 1) {
@@ -748,6 +750,9 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                                             {local_head_num_},
                                             linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_)});
 
+	// getValue1(linear_bias_slopes_ + local_head_num_ * tensor_para_.rank_, 40, 40, 0, stream_);
+    	// std::cout << std::endl;
+
         std::unordered_map<std::string, Tensor> decoder_output_tensors{
             {"decoder_output",
              Tensor{MEMORY_GPU,
@@ -762,6 +767,9 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
         gpt_context_decoder_->forward(
             &decoder_output_tensors, &decoder_input_tensors, &gpt_weights->decoder_layer_weights);
         sync_check_cuda_error();
+
+        // getValue1(context_decoder_output_buf_, hidden_units_, hidden_units_, 0, stream_);
+
         invokeDecodingInitialize(finished_buf_,
                                  sequence_lengths_,
                                  nullptr,
@@ -940,6 +948,7 @@ void Baichuan2<T>::forward(std::unordered_map<std::string, Tensor>*       output
                                          stream_);
                 sync_check_cuda_error();
 
+		// getValue1(normed_decoder_output_buf_, hidden_units_, 128, 128, stream_);
                 
                 if (tensor_para_.world_size_ == 1) {
                     float alpha = 1.0f;

@@ -287,6 +287,7 @@ void Baichuan2ContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>
     const T*   attention_mask          = input_tensors->at("attention_mask").getPtr<const T>();
     const T**  d_prefix_prompt_batch   = input_tensors->at("d_prefix_prompt_batch").getPtr<const T*>();
     const int* d_prefix_prompt_lengths = input_tensors->at("d_prefix_prompt_lengths").getPtr<const int>();
+    T*         linear_bias_slopes      = input_tensors->at("linear_bias_slopes").getPtr<T>();
 
     if (use_shared_contexts) {
         invokeCompactInputs(compact_decoder_features_,
@@ -324,10 +325,14 @@ void Baichuan2ContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>
         self_k_cache_size[3] = seq_len;
         self_v_cache_size[2] = seq_len;
     }
-
+	
+    /*
     AttentionType attention_type  = (d_prefix_prompt_lengths != nullptr) ?
                                         getUnfusedAttentionType(attention_type_) :
                                         attention_type_;
+    */
+    AttentionType attention_type = (d_prefix_prompt_lengths != nullptr || (input_tensors->count("linear_bias_slopes") || int8_mode_ == 2)) ? getUnfusedAttentionType(attention_type_) : attention_type_;
+
     const bool    is_unpadded_mha = isUnPaddedMHA(attention_type);
 
     for (int ite = 0; ite < iteration_num; ite++) {
@@ -429,6 +434,8 @@ void Baichuan2ContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>
                 self_attention_input_tensors.insert(
                     "cu_seqlens", Tensor{MEMORY_GPU, TYPE_INT32, {size_t(local_batch_size + 1)}, cu_seqlens_});
             }
+
+            self_attention_input_tensors.insert("linear_bias_slopes", input_tensors->at("linear_bias_slopes"));
 
             size_t cache_offset = l - getFirstLayerParallelId();
             for (auto t = k_cache.shape.begin() + 1; t != k_cache.shape.end(); ++t) {
@@ -566,6 +573,8 @@ void Baichuan2ContextDecoder<T>::forward(std::unordered_map<std::string, Tensor>
                                          head_num_ * size_per_head_,
                                          stream_);
                 }
+		// std::cout << num_layer_ << std::endl;
+		// getValue1(decoder_layer_output_, hidden_units_ * 5, 20, 0, stream_);
             }
         }
     }

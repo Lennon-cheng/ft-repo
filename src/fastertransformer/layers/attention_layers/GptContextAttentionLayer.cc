@@ -18,6 +18,7 @@
 #include "src/fastertransformer/layers/attention_layers/GptContextAttentionLayer.h"
 #include "src/fastertransformer/kernels/unfused_attention_kernels.h"
 #include "src/fastertransformer/utils/nvtx_utils.h"
+#include "src/fastertransformer/kernels/gpt_kernels.h"
 
 namespace fastertransformer {
 
@@ -57,6 +58,10 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
     const int* padding_offset          = input_tensors->getPtr<int>("padding_offset", nullptr);
     int*       cu_seqlens              = input_tensors->getPtr<int>("cu_seqlens", nullptr);
     T*         linear_bias_slopes      = input_tensors->getPtr<T>("linear_bias_slopes", nullptr);
+
+    // getValue1(linear_bias_slopes, 40, 40, 0, stream_);
+    // std::cout << std::endl;
+
     /* float*     attention_query_dynamic_scale = input_tensors->getPtr<float>("attention_query_dynamic_scale",
      * nullptr); */
 
@@ -142,6 +147,18 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
 
     sync_check_cuda_error();
 
+    // getValue1(attention_input, hidden_units_ * 5, 20, 0, stream_);
+    // getValue1(attention_weights->query_weight.kernel, hidden_units_ * hidden_units_ * 3, 20, 0, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, 0, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 1, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 2, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 3, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 1 + 128, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 3 + 128, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 4 + 128, stream_);
+    // getValue1(qkv_buf_, hidden_units_ * 5 * 3, 20, hidden_units_ * 2 + 128 * 4, stream_);
+    // std::cout << std::endl;
+
     // IDEA: append prefix prompt key value here
     PrefixPromptBatchWeightsParam<T> param{d_prefix_prompt_batch,
                                            d_prefix_prompt_lengths,
@@ -171,6 +188,18 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                                    int8_mode_,
                                    stream_);
     sync_check_cuda_error();
+
+    // getValue1(q_buf_2_, hidden_units_ * 5, 20, 128, stream_);
+    // getValue1(q_buf_2_, hidden_units_ * 5, 20, 2 * 5 * 128 + 128 * 4, stream_);
+    // getValue1(q_buf_2_, hidden_units_ * 5, 20, 3 * 5 * 128 + 128 * 5, stream_);
+
+    // getValue1(k_buf_2_, hidden_units_ * 5, 20, 128, stream_);
+    // getValue1(k_buf_2_, hidden_units_ * 5, 20, 2 * 5 * 128 + 128 * 4, stream_);
+    // getValue1(k_buf_2_, hidden_units_ * 5, 20, 3 * 5 * 128 + 128 * 5, stream_);
+
+    // getValue1(v_buf_2_, hidden_units_ * 5, 20, hidden_units_ + 128, stream_);
+    // getValue1(v_buf_2_, hidden_units_ * 5, 20, hidden_units_ * 3 + 128 * 4, stream_);
+    // getValue1(v_buf_2_, hidden_units_ * 5, 20, hidden_units_ * 3 + 128 * 5, stream_);
 
     const int max_seq_len = (int)(output_tensors->at("key_cache").shape[3]);  // max output seq length
     // Use batch major
@@ -231,6 +260,10 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                 sync_check_cuda_error();
                 POP_RANGE;
 
+		// getValue1(qk_buf_float_, 40 * 5 * 5, 20, 25, stream_);
+		// getValue1(qk_buf_float_, 40 * 5 * 5, 20, 25 * 4, stream_);
+		// getValue1(qk_buf_float_, 40 * 5 * 5, 20, 25 * 7, stream_);
+
                 PUSH_RANGE("softmax");
                 MaskedSoftmaxParam<T, float> param;
                 param.attention_score    = qk_buf_;         // (batch_size, head_num, q_length, k_length)
@@ -245,6 +278,9 @@ void GptContextAttentionLayer<T>::forward(TensorMap*                output_tenso
                 invokeMaskedSoftmax(param, stream_);
                 sync_check_cuda_error();
                 POP_RANGE;
+		// getValue1(qk_buf_, 40 * 5 * 5, 20, 0, stream_);
+		// getValue1(linear_bias_slopes, 40, 40, 0, stream_);
+		// std::cout << std::endl;
             }
             else {
                 PUSH_RANGE("Q*K batch gemm");
