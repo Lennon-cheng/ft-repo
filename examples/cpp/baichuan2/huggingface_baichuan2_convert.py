@@ -176,7 +176,8 @@ def split_and_convert(args):
             param.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.final_layernorm.weight.bin")
         elif name == 'lm_head.weight':
             param.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.lm_head.weight.bin")
-
+            norm_weight = nn.functional.normalize(param)
+            norm_weight.detach().cpu().numpy().astype(np_weight_data_type).tofile(saved_dir + "model.norm_head.weight.bin")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
